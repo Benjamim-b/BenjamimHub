@@ -1,620 +1,556 @@
--- Serviços
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local StarterGui = game:GetService("StarterGui")
-local Lighting = game:GetService("Lighting")
-local Workspace = game:GetService("Workspace")
 
--- Player
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Criar a ScreenGui principal
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "AdminPanelGui"
-screenGui.Parent = playerGui
-screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-screenGui.ResetOnSpawn = false
-
--- Criar o ícone de abrir/fechar com texto ADM
-local toggleButton = Instance.new("TextButton")
-toggleButton.Name = "ADMIcon"
-toggleButton.Size = UDim2.new(0, 60, 0, 60)
-toggleButton.Position = UDim2.new(0, 20, 0.5, -30)
-toggleButton.AnchorPoint = Vector2.new(0, 0.5)
-toggleButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-toggleButton.Text = "ADM"
-toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleButton.TextSize = 16
-toggleButton.TextWrapped = true
-toggleButton.Font = Enum.Font.GothamBold
-toggleButton.ZIndex = 5
-
--- Adicionar UICorner ao botão
-local buttonCorner = Instance.new("UICorner")
-buttonCorner.CornerRadius = UDim.new(0, 12)
-buttonCorner.Parent = toggleButton
-
--- Criar o hub Admin Panel (centralizado na mira do jogador)
-local hubFrame = Instance.new("Frame")
-hubFrame.Name = "AdminPanel"
-hubFrame.Size = UDim2.new(0, 350, 0, 450)
-hubFrame.Position = UDim2.new(0.5, -175, 0.5, -225)
-hubFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-hubFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-hubFrame.Visible = false
-hubFrame.ClipsDescendants = true
-hubFrame.ZIndex = 4
-
--- Adicionar UICorner ao hub
-local hubCorner = Instance.new("UICorner")
-hubCorner.CornerRadius = UDim.new(0, 15)
-hubCorner.Parent = hubFrame
-
--- Adicionar sombra ao hub
-local hubShadow = Instance.new("ImageLabel")
-hubShadow.Name = "Shadow"
-hubShadow.Size = UDim2.new(1, 10, 1, 10)
-hubShadow.Position = UDim2.new(0.5, -5, 0.5, -5)
-hubShadow.AnchorPoint = Vector2.new(0.5, 0.5)
-hubShadow.BackgroundTransparency = 1
-hubShadow.Image = "rbxassetid://1316045217"
-hubShadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-hubShadow.ImageTransparency = 0.8
-hubShadow.ScaleType = Enum.ScaleType.Slice
-hubShadow.SliceCenter = Rect.new(10, 10, 118, 118)
-hubShadow.ZIndex = 3
-hubShadow.Parent = hubFrame
-
--- Criar header do hub
-local header = Instance.new("Frame")
-header.Name = "Header"
-header.Size = UDim2.new(1, 0, 0, 50)
-header.Position = UDim2.new(0, 0, 0, 0)
-header.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-header.BorderSizePixel = 0
-header.ZIndex = 5
-
--- Adicionar UICorner apenas no topo do header
-local headerCorner = Instance.new("UICorner")
-headerCorner.CornerRadius = UDim.new(0, 15)
-headerCorner.Parent = header
-
--- Título do hub
-local title = Instance.new("TextLabel")
-title.Name = "Title"
-title.Size = UDim2.new(1, -20, 1, 0)
-title.Position = UDim2.new(0, 10, 0, 0)
-title.BackgroundTransparency = 1
-title.Text = "ADMIN PANEL"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.TextSize = 20
-title.Font = Enum.Font.GothamBold
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.ZIndex = 6
-title.Parent = header
-
--- Botão de fechar no header
-local closeButton = Instance.new("TextButton")
-closeButton.Name = "CloseButton"
-closeButton.Size = UDim2.new(0, 30, 0, 30)
-closeButton.Position = UDim2.new(1, -35, 0.5, -15)
-closeButton.AnchorPoint = Vector2.new(1, 0.5)
-closeButton.BackgroundColor3 = Color3.fromRGB(70, 70, 80)
-closeButton.Text = "X"
-closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeButton.TextSize = 14
-closeButton.Font = Enum.Font.GothamBold
-closeButton.ZIndex = 6
-
--- UICorner para o botão de fechar
-local closeCorner = Instance.new("UICorner")
-closeCorner.CornerRadius = UDim.new(0, 8)
-closeCorner.Parent = closeButton
-
-closeButton.Parent = header
-header.Parent = hubFrame
-
--- Conteúdo do hub
-local content = Instance.new("ScrollingFrame")
-content.Name = "Content"
-content.Size = UDim2.new(1, -20, 1, -60)
-content.Position = UDim2.new(0, 10, 0, 50)
-content.BackgroundTransparency = 1
-content.BorderSizePixel = 0
-content.ScrollBarThickness = 6
-content.AutomaticCanvasSize = Enum.AutomaticSize.Y
-content.CanvasSize = UDim2.new(0, 0, 0, 0)
-content.ScrollingDirection = Enum.ScrollingDirection.Y
-content.ZIndex = 5
-
--- Lista de itens
-local uiListLayout = Instance.new("UIListLayout")
-uiListLayout.Padding = UDim.new(0, 10)
-uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-uiListLayout.Parent = content
-
-content.Parent = hubFrame
-
--- Variáveis globais
-local isHubOpen = false
-local rainbowConnections = {}
-local selectedPlayer = nil
-local commandHistory = {}
-
--- Função para criar botões com efeito arco-íris
-local function createRainbowButton(text, onClick, description)
-    local buttonContainer = Instance.new("Frame")
-    buttonContainer.Name = text .. "Container"
-    buttonContainer.Size = UDim2.new(1, 0, 0, 50)
-    buttonContainer.BackgroundTransparency = 1
-    buttonContainer.LayoutOrder = #content:GetChildren()
+-- Detectar executor real
+local function detectRealExecutor()
+    local executors = {
+        {"Synapse", "syn", "SynapseX"},
+        {"ScriptWare", "sw", "ScriptWare"},
+        {"ProtoSmasher", "ps", "ProtoSmasher"},
+        {"Krnl", "krnl", "Krnl"},
+        {"Fluxus", "fluxus", "Fluxus"},
+        {"Delta", "delta", "Delta"},
+        {"Oxygen", "oxygen", "Oxygen U"},
+        {"Electron", "electron", "Electron"},
+        {"Comet", "comet", "Comet"},
+        {"Codex", "codex", "Codex"},
+        {"Arceus X", "arceus", "Arceus X"},
+        {"Solara", "solara", "Solara"},
+        {"Calamari", "calamari", "Calamari"},
+        {"Valyse", "valyse", "Valyse"},
+        {"Furk", "furk", "Furk Ultra"},
+        {"Hydrogen", "hydrogen", "Hydrogen"},
+        {"Elex", "elex", "Elex"},
+        {"Trigon", "trigon", "Trigon Evo"},
+        {"Node", "node", "Node"},
+        {"Temple", "temple", "Temple"}
+    }
     
-    local button = Instance.new("TextButton")
-    button.Name = text .. "Button"
-    button.Size = UDim2.new(1, 0, 1, 0)
-    button.BackgroundColor3 = Color3.fromRGB(55, 55, 65)
-    button.Text = text
-    button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.TextSize = 16
-    button.Font = Enum.Font.GothamBold
-    button.AutoButtonColor = false
-    button.ZIndex = 6
+    local detected = "Unknown"
     
-    -- UICorner para o botão
-    local buttonCorner = Instance.new("UICorner")
-    buttonCorner.CornerRadius = UDim.new(0, 10)
-    buttonCorner.Parent = button
-    
-    -- Descrição do comando
-    if description then
-        local descLabel = Instance.new("TextLabel")
-        descLabel.Name = "Description"
-        descLabel.Size = UDim2.new(1, -10, 0, 14)
-        descLabel.Position = UDim2.new(0, 5, 1, -16)
-        descLabel.BackgroundTransparency = 1
-        descLabel.Text = description
-        descLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-        descLabel.TextSize = 12
-        descLabel.Font = Enum.Font.Gotham
-        descLabel.TextXAlignment = Enum.TextXAlignment.Left
-        descLabel.ZIndex = 6
-        descLabel.Parent = button
+    for _, executor in ipairs(executors) do
+        local success, result = pcall(function()
+            return identifyexecutor and identifyexecutor() or (getexecutorname and getexecutorname()) or (executor and executor())
+        end)
+        
+        if success and type(result) == "string" then
+            for _, name in ipairs(executor) do
+                if string.find(string.lower(result), string.lower(name)) then
+                    detected = executor[3] or executor[1]
+                    break
+                end
+            end
+        end
     end
     
-    -- Efeito hover
+    -- Fallback para detecção por funções específicas
+    if detected == "Unknown" then
+        if pcall(function() return syn and syn.protect_gui end) then
+            detected = "Synapse X"
+        elseif pcall(function() return secure_load end) then
+            detected = "ScriptWare"
+        elseif pcall(function() return is_protosmasher_closure end) then
+            detected = "ProtoSmasher"
+        elseif pcall(function() return krnl and krnl.request end) then
+            detected = "Krnl"
+        elseif pcall(function() return fluxus and fluxus.request end) then
+            detected = "Fluxus"
+        end
+    end
+    
+    return detected
+end
+
+-- Criar a ScreenGui principal
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "BenjamimHub"
+screenGui.Parent = playerGui
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- TELA DE CARREGAMENTO
+local loadingFrame = Instance.new("Frame")
+loadingFrame.Name = "LoadingFrame"
+loadingFrame.Size = UDim2.new(1, 0, 1, 0)
+loadingFrame.Position = UDim2.new(0, 0, 0, 0)
+loadingFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+loadingFrame.BorderSizePixel = 0
+loadingFrame.ZIndex = 10
+loadingFrame.Parent = screenGui
+
+local loadingUICorner = Instance.new("UICorner")
+loadingUICorner.CornerRadius = UDim.new(0, 0)
+loadingUICorner.Parent = loadingFrame
+
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Name = "TitleLabel"
+titleLabel.Size = UDim2.new(0, 300, 0, 60)
+titleLabel.Position = UDim2.new(0.5, -150, 0.4, -30)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "Benjamim Hub"
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.TextSize = 32
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.ZIndex = 11
+titleLabel.Parent = loadingFrame
+
+local loadingBarBackground = Instance.new("Frame")
+loadingBarBackground.Name = "LoadingBarBackground"
+loadingBarBackground.Size = UDim2.new(0, 300, 0, 20)
+loadingBarBackground.Position = UDim2.new(0.5, -150, 0.5, 0)
+loadingBarBackground.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+loadingBarBackground.BorderSizePixel = 0
+loadingBarBackground.ZIndex = 11
+loadingBarBackground.Parent = loadingFrame
+
+local loadingBarBackgroundCorner = Instance.new("UICorner")
+loadingBarBackgroundCorner.CornerRadius = UDim.new(0, 10)
+loadingBarBackgroundCorner.Parent = loadingBarBackground
+
+local loadingBar = Instance.new("Frame")
+loadingBar.Name = "LoadingBar"
+loadingBar.Size = UDim2.new(0, 0, 1, 0)
+loadingBar.Position = UDim2.new(0, 0, 0, 0)
+loadingBar.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+loadingBar.BorderSizePixel = 0
+loadingBar.ZIndex = 12
+loadingBar.Parent = loadingBarBackground
+
+local loadingBarCorner = Instance.new("UICorner")
+loadingBarCorner.CornerRadius = UDim.new(0, 10)
+loadingBarCorner.Parent = loadingBar
+
+local loadingText = Instance.new("TextLabel")
+loadingText.Name = "LoadingText"
+loadingText.Size = UDim2.new(0, 200, 0, 30)
+loadingText.Position = UDim2.new(0.5, -100, 0.5, 30)
+loadingText.BackgroundTransparency = 1
+loadingText.Text = "Carregando..."
+loadingText.TextColor3 = Color3.fromRGB(200, 200, 200)
+loadingText.TextSize = 18
+loadingText.Font = Enum.Font.Gotham
+loadingText.ZIndex = 11
+loadingText.Parent = loadingFrame
+
+-- HUB PRINCIPAL
+local hubFrame = Instance.new("Frame")
+hubFrame.Name = "HubFrame"
+hubFrame.Size = UDim2.new(0, 450, 0, 550)
+hubFrame.Position = UDim2.new(0.5, -225, 0.5, -275)
+hubFrame.BackgroundColor3 = Color3.fromRGB(30, 60, 120)
+hubFrame.BorderSizePixel = 0
+hubFrame.Visible = false
+hubFrame.ZIndex = 5
+hubFrame.Parent = screenGui
+
+local hubCorner = Instance.new("UICorner")
+hubCorner.CornerRadius = UDim.new(0, 12)
+hubCorner.Parent = hubFrame
+
+local topBar = Instance.new("Frame")
+topBar.Name = "TopBar"
+topBar.Size = UDim2.new(1, 0, 0, 40)
+topBar.Position = UDim2.new(0, 0, 0, 0)
+topBar.BackgroundColor3 = Color3.fromRGB(20, 50, 100)
+topBar.BorderSizePixel = 0
+topBar.ZIndex = 6
+topBar.Parent = hubFrame
+
+local topBarCorner = Instance.new("UICorner")
+topBarCorner.CornerRadius = UDim.new(0, 12)
+topBarCorner.Parent = topBar
+
+local hubTitle = Instance.new("TextLabel")
+hubTitle.Name = "HubTitle"
+hubTitle.Size = UDim2.new(0, 200, 0, 40)
+hubTitle.Position = UDim2.new(0.5, -100, 0, 0)
+hubTitle.BackgroundTransparency = 1
+hubTitle.Text = "Benjamim Hub"
+hubTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+hubTitle.TextSize = 20
+hubTitle.Font = Enum.Font.GothamBold
+hubTitle.ZIndex = 7
+hubTitle.Parent = topBar
+
+local closeButton = Instance.new("TextButton")
+closeButton.Name = "CloseButton"
+closeButton.Size = UDim2.new(0, 40, 0, 40)
+closeButton.Position = UDim2.new(1, -40, 0, 0)
+closeButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+closeButton.BorderSizePixel = 0
+closeButton.Text = "X"
+closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeButton.TextSize = 18
+closeButton.Font = Enum.Font.GothamBold
+closeButton.ZIndex = 7
+closeButton.Parent = topBar
+
+local closeButtonCorner = Instance.new("UICorner")
+closeButtonCorner.CornerRadius = UDim.new(0, 12)
+closeButtonCorner.Parent = closeButton
+
+local openButton = Instance.new("TextButton")
+openButton.Name = "OpenButton"
+openButton.Size = UDim2.new(0, 50, 0, 50)
+openButton.Position = UDim2.new(0, 20, 0, 20)
+openButton.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+openButton.BorderSizePixel = 0
+openButton.Text = "☰"
+openButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+openButton.TextSize = 24
+openButton.Visible = false
+openButton.ZIndex = 5
+openButton.Parent = screenGui
+
+local openButtonCorner = Instance.new("UICorner")
+openButtonCorner.CornerRadius = UDim.new(0, 12)
+openButtonCorner.Parent = openButton
+
+-- Conteúdo do Hub
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Name = "ScrollFrame"
+scrollFrame.Size = UDim2.new(1, -20, 1, -100)
+scrollFrame.Position = UDim2.new(0, 10, 0, 50)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.BorderSizePixel = 0
+scrollFrame.ScrollBarThickness = 5
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrollFrame.ZIndex = 6
+scrollFrame.Parent = hubFrame
+
+local uiListLayout = Instance.new("UIListLayout")
+uiListLayout.Padding = UDim.new(0, 10)
+uiListLayout.Parent = scrollFrame
+
+-- Área de informações do executor
+local executorFrame = Instance.new("Frame")
+executorFrame.Name = "ExecutorFrame"
+executorFrame.Size = UDim2.new(1, -20, 0, 40)
+executorFrame.Position = UDim2.new(0, 10, 1, -50)
+executorFrame.BackgroundColor3 = Color3.fromRGB(40, 80, 160)
+executorFrame.BorderSizePixel = 0
+executorFrame.ZIndex = 6
+executorFrame.Parent = hubFrame
+
+local executorCorner = Instance.new("UICorner")
+executorCorner.CornerRadius = UDim.new(0, 8)
+executorCorner.Parent = executorFrame
+
+local executorText = Instance.new("TextLabel")
+executorText.Name = "ExecutorText"
+executorText.Size = UDim2.new(1, 0, 1, 0)
+executorText.Position = UDim2.new(0, 0, 0, 0)
+executorText.BackgroundTransparency = 1
+executorText.Text = "Executor: Detectando..."
+executorText.TextColor3 = Color3.fromRGB(255, 255, 255)
+executorText.TextSize = 16
+executorText.Font = Enum.Font.Gotham
+executorText.ZIndex = 7
+executorText.Parent = executorFrame
+
+-- Função para simular carregamento
+local function simulateLoading()
+    for i = 1, 100 do
+        loadingBar.Size = UDim2.new(0, i * 3, 1, 0)
+        loadingText.Text = "Carregando... " .. i .. "%"
+        wait(0.03)
+    end
+    
+    wait(0.5)
+    
+    -- Animação de desaparecimento
+    local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local tween = TweenService:Create(loadingFrame, tweenInfo, {BackgroundTransparency = 1})
+    tween:Play()
+    
+    tween.Completed:Connect(function()
+        loadingFrame.Visible = false
+        openButton.Visible = true
+    end)
+end
+
+-- Funções para abrir e fechar o hub
+local function openHub()
+    hubFrame.Visible = true
+    openButton.Visible = false
+    
+    -- Animação de entrada
+    hubFrame.Position = UDim2.new(0.5, -225, 0.5, -275)
+    local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out, 0, false, 0)
+    local tween = TweenService:Create(hubFrame, tweenInfo, {Position = UDim2.new(0.5, -225, 0.5, -275)})
+    tween:Play()
+end
+
+local function closeHub()
+    -- Animação de saída
+    local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In, 0, false, 0)
+    local tween = TweenService:Create(hubFrame, tweenInfo, {Position = UDim2.new(0.5, -225, 1, 50)})
+    tween:Play()
+    
+    tween.Completed:Connect(function()
+        hubFrame.Visible = false
+        openButton.Visible = true
+    end)
+end
+
+-- Função para mostrar créditos
+local function showCredits()
+    local creditsGui = Instance.new("ScreenGui")
+    creditsGui.Name = "CreditsGui"
+    creditsGui.Parent = playerGui
+    creditsGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    
+    local creditsFrame = Instance.new("Frame")
+    creditsFrame.Name = "CreditsFrame"
+    creditsFrame.Size = UDim2.new(0, 350, 0, 200)
+    creditsFrame.Position = UDim2.new(0.5, -175, 0.5, -100)
+    creditsFrame.BackgroundColor3 = Color3.fromRGB(40, 80, 160)
+    creditsFrame.BorderSizePixel = 0
+    creditsFrame.ZIndex = 20
+    creditsFrame.Parent = creditsGui
+    
+    local creditsCorner = Instance.new("UICorner")
+    creditsCorner.CornerRadius = UDim.new(0, 12)
+    creditsCorner.Parent = creditsFrame
+    
+    local creditsTitle = Instance.new("TextLabel")
+    creditsTitle.Name = "CreditsTitle"
+    creditsTitle.Size = UDim2.new(1, 0, 0, 40)
+    creditsTitle.Position = UDim2.new(0, 0, 0, 0)
+    creditsTitle.BackgroundColor3 = Color3.fromRGB(30, 60, 120)
+    creditsTitle.BorderSizePixel = 0
+    creditsTitle.Text = "Créditos"
+    creditsTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    creditsTitle.TextSize = 20
+    creditsTitle.Font = Enum.Font.GothamBold
+    creditsTitle.ZIndex = 21
+    creditsTitle.Parent = creditsFrame
+    
+    local titleCorner = Instance.new("UICorner")
+    titleCorner.CornerRadius = UDim.new(0, 12)
+    titleCorner.Parent = creditsTitle
+    
+    local discordText = Instance.new("TextLabel")
+    discordText.Name = "DiscordText"
+    discordText.Size = UDim2.new(1, -20, 0, 60)
+    discordText.Position = UDim2.new(0, 10, 0, 50)
+    discordText.BackgroundTransparency = 1
+    discordText.Text = "Entre no nosso Discord:\nhttps://discord.gg/EefZABU4"
+    discordText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    discordText.TextSize = 18
+    discordText.Font = Enum.Font.Gotham
+    discordText.TextWrapped = true
+    discordText.ZIndex = 21
+    discordText.Parent = creditsFrame
+    
+    local closeCreditsButton = Instance.new("TextButton")
+    closeCreditsButton.Name = "CloseCreditsButton"
+    closeCreditsButton.Size = UDim2.new(0, 100, 0, 40)
+    closeCreditsButton.Position = UDim2.new(0.5, -50, 1, -60)
+    closeCreditsButton.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+    closeCreditsButton.BorderSizePixel = 0
+    closeCreditsButton.Text = "Fechar"
+    closeCreditsButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeCreditsButton.TextSize = 18
+    closeCreditsButton.Font = Enum.Font.GothamBold
+    closeCreditsButton.ZIndex = 21
+    closeCreditsButton.Parent = creditsFrame
+    
+    local closeButtonCorner = Instance.new("UICorner")
+    closeButtonCorner.CornerRadius = UDim.new(0, 8)
+    closeButtonCorner.Parent = closeCreditsButton
+    
+    closeCreditsButton.MouseButton1Click:Connect(function()
+        creditsGui:Destroy()
+    end)
+end
+
+-- Função para criar botão com estilo
+local function createStyledButton(name, parent)
+    local button = Instance.new("TextButton")
+    button.Name = name
+    button.Size = UDim2.new(1, 0, 0, 50)
+    button.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
+    button.BorderSizePixel = 0
+    button.Text = name
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.TextSize = 18
+    button.Font = Enum.Font.Gotham
+    button.ZIndex = 7
+    button.Parent = parent
+    
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 8)
+    buttonCorner.Parent = button
+    
     button.MouseEnter:Connect(function()
-        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(65, 65, 75)}):Play()
+        button.BackgroundColor3 = Color3.fromRGB(70, 130, 230)
     end)
     
     button.MouseLeave:Connect(function()
-        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(55, 55, 65)}):Play()
+        button.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
     end)
-    
-    -- Efeito de clique
-    button.MouseButton1Down:Connect(function()
-        TweenService:Create(button, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(75, 75, 85)}):Play()
-    end)
-    
-    button.MouseButton1Up:Connect(function()
-        TweenService:Create(button, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(65, 65, 75)}):Play()
-        if onClick then
-            onClick()
-        end
-    end)
-    
-    button.Parent = buttonContainer
-    buttonContainer.Parent = content
-    
-    -- Efeito arco-íris
-    local rainbowConnection
-    local function startRainbowEffect()
-        local hue = 0
-        rainbowConnection = RunService.Heartbeat:Connect(function()
-            hue = (hue + 0.01) % 1
-            button.TextColor3 = Color3.fromHSV(hue, 1, 1)
-        end)
-        rainbowConnections[button] = rainbowConnection
-    end
-    
-    startRainbowEffect()
     
     return button
 end
 
--- Função para criar seção de seleção de jogador
-local function createPlayerSelector()
-    local selectorContainer = Instance.new("Frame")
-    selectorContainer.Name = "PlayerSelector"
-    selectorContainer.Size = UDim2.new(1, 0, 0, 40)
-    selectorContainer.BackgroundTransparency = 1
-    selectorContainer.LayoutOrder = 0
+-- Função para criar janela de Troll Player
+local function createTrollPlayerWindow()
+    local trollGui = Instance.new("ScreenGui")
+    trollGui.Name = "TrollPlayerGui"
+    trollGui.Parent = playerGui
+    trollGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     
-    local selectorLabel = Instance.new("TextLabel")
-    selectorLabel.Name = "SelectorLabel"
-    selectorLabel.Size = UDim2.new(0, 100, 1, 0)
-    selectorLabel.BackgroundTransparency = 1
-    selectorLabel.Text = "Selecionar Jogador:"
-    selectorLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    selectorLabel.TextSize = 14
-    selectorLabel.Font = Enum.Font.Gotham
-    selectorLabel.TextXAlignment = Enum.TextXAlignment.Left
-    selectorLabel.ZIndex = 6
-    selectorLabel.Parent = selectorContainer
+    local trollFrame = Instance.new("Frame")
+    trollFrame.Name = "TrollFrame"
+    trollFrame.Size = UDim2.new(0, 400, 0, 500)
+    trollFrame.Position = UDim2.new(0.5, -200, 0.5, -250)
+    trollFrame.BackgroundColor3 = Color3.fromRGB(40, 80, 160)
+    trollFrame.BorderSizePixel = 0
+    trollFrame.ZIndex = 20
+    trollFrame.Parent = trollGui
     
-    local selectorBox = Instance.new("TextBox")
-    selectorBox.Name = "PlayerTextBox"
-    selectorBox.Size = UDim2.new(1, -110, 1, 0)
-    selectorBox.Position = UDim2.new(0, 105, 0, 0)
-    selectorBox.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-    selectorBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-    selectorBox.TextSize = 14
-    selectorBox.Font = Enum.Font.Gotham
-    selectorBox.PlaceholderText = "Nome do jogador"
-    selectorBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
-    selectorBox.ZIndex = 6
+    local trollCorner = Instance.new("UICorner")
+    trollCorner.CornerRadius = UDim.new(0, 12)
+    trollCorner.Parent = trollFrame
     
-    local selectorCorner = Instance.new("UICorner")
-    selectorCorner.CornerRadius = UDim.new(0, 6)
-    selectorCorner.Parent = selectorBox
+    local trollTitle = Instance.new("TextLabel")
+    trollTitle.Name = "TrollTitle"
+    trollTitle.Size = UDim2.new(1, 0, 0, 40)
+    trollTitle.Position = UDim2.new(0, 0, 0, 0)
+    trollTitle.BackgroundColor3 = Color3.fromRGB(30, 60, 120)
+    trollTitle.BorderSizePixel = 0
+    trollTitle.Text = "Troll Player"
+    trollTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    trollTitle.TextSize = 20
+    trollTitle.Font = Enum.Font.GothamBold
+    trollTitle.ZIndex = 21
+    trollTitle.Parent = trollFrame
     
-    selectorBox.FocusLost:Connect(function(enterPressed)
-        if enterPressed then
-            local targetName = selectorBox.Text
-            for _, plr in ipairs(Players:GetPlayers()) do
-                if plr.Name:lower():find(targetName:lower()) or plr.DisplayName:lower():find(targetName:lower()) then
-                    selectedPlayer = plr
-                    selectorBox.Text = plr.Name
-                    return
-                end
-            end
-            selectedPlayer = nil
-            selectorBox.Text = "Jogador não encontrado"
-            wait(1)
-            if selectorBox.Text == "Jogador não encontrado" then
-                selectorBox.Text = ""
-            end
-        end
-    end)
+    local titleCorner = Instance.new("UICorner")
+    titleCorner.CornerRadius = UDim.new(0, 12)
+    titleCorner.Parent = trollTitle
     
-    selectorBox.Parent = selectorContainer
-    selectorContainer.Parent = content
+    local playerListFrame = Instance.new("Frame")
+    playerListFrame.Name = "PlayerListFrame"
+    playerListFrame.Size = UDim2.new(1, -20, 0, 150)
+    playerListFrame.Position = UDim2.new(0, 10, 0, 50)
+    playerListFrame.BackgroundColor3 = Color3.fromRGB(30, 60, 120)
+    playerListFrame.BorderSizePixel = 0
+    playerListFrame.ZIndex = 21
+    playerListFrame.Parent = trollFrame
     
-    return selectorBox
-end
-
--- Função para criar console de comandos
-local function createCommandConsole()
-    local consoleContainer = Instance.new("Frame")
-    consoleContainer.Name = "CommandConsole"
-    consoleContainer.Size = UDim2.new(1, 0, 0, 40)
-    consoleContainer.BackgroundTransparency = 1
-    consoleContainer.LayoutOrder = 100
+    local playerListCorner = Instance.new("UICorner")
+    playerListCorner.CornerRadius = UDim.new(0, 8)
+    playerListCorner.Parent = playerListFrame
     
-    local consoleLabel = Instance.new("TextLabel")
-    consoleLabel.Name = "ConsoleLabel"
-    consoleLabel.Size = UDim2.new(0, 100, 1, 0)
-    consoleLabel.BackgroundTransparency = 1
-    consoleLabel.Text = "Comando:"
-    consoleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    consoleLabel.TextSize = 14
-    consoleLabel.Font = Enum.Font.Gotham
-    consoleLabel.TextXAlignment = Enum.TextXAlignment.Left
-    consoleLabel.ZIndex = 6
-    consoleLabel.Parent = consoleContainer
+    local playerList = Instance.new("ScrollingFrame")
+    playerList.Name = "PlayerList"
+    playerList.Size = UDim2.new(1, -10, 1, -10)
+    playerList.Position = UDim2.new(0, 5, 0, 5)
+    playerList.BackgroundTransparency = 1
+    playerList.BorderSizePixel = 0
+    playerList.ScrollBarThickness = 5
+    playerList.ZIndex = 22
+    playerList.Parent = playerListFrame
     
-    local consoleBox = Instance.new("TextBox")
-    consoleBox.Name = "CommandTextBox"
-    consoleBox.Size = UDim2.new(1, -110, 1, 0)
-    consoleBox.Position = UDim2.new(0, 105, 0, 0)
-    consoleBox.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-    consoleBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-    consoleBox.TextSize = 14
-    consoleBox.Font = Enum.Font.Gotham
-    consoleBox.PlaceholderText = "Digite /comando"
-    consoleBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
-    consoleBox.ZIndex = 6
+    local playerListLayout = Instance.new("UIListLayout")
+    playerListLayout.Padding = UDim.new(0, 5)
+    playerListLayout.Parent = playerList
     
-    local consoleCorner = Instance.new("UICorner")
-    consoleCorner.CornerRadius = UDim.new(0, 6)
-    consoleCorner.Parent = consoleBox
+    local updateButton = createStyledButton("Atualizar Lista", trollFrame)
+    updateButton.Position = UDim2.new(0, 10, 0, 210)
+    updateButton.Size = UDim2.new(0.45, -5, 0, 40)
     
-    consoleBox.FocusLost:Connect(function(enterPressed)
-        if enterPressed then
-            local commandText = consoleBox.Text
-            if commandText:sub(1, 1) == "/" then
-                processCommand(commandText)
-                table.insert(commandHistory, commandText)
-                consoleBox.Text = ""
-            else
-                consoleBox.Text = "Comando deve começar com /"
-                wait(1)
-                consoleBox.Text = ""
-            end
-        end
-    end)
+    local viewButton = createStyledButton("View Player", trollFrame)
+    viewButton.Position = UDim2.new(0.55, 5, 0, 210)
+    viewButton.Size = UDim2.new(0.45, -5, 0, 40)
     
-    consoleBox.Parent = consoleContainer
-    consoleContainer.Parent = content
+    local itemLabel = Instance.new("TextLabel")
+    itemLabel.Name = "ItemLabel"
+    itemLabel.Size = UDim2.new(1, -20, 0, 30)
+    itemLabel.Position = UDim2.new(0, 10, 0, 260)
+    itemLabel.BackgroundTransparency = 1
+    itemLabel.Text = "Selecionar Item:"
+    itemLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    itemLabel.TextSize = 16
+    itemLabel.Font = Enum.Font.Gotham
+    itemLabel.ZIndex = 21
+    itemLabel.Parent = trollFrame
     
-    return consoleBox
-end
-
--- Funções de comando
-local function kickPlayer(target)
-    if target then
-        -- Simular kick
-        warn("[ADMIN] " .. target.Name .. " foi kickado!")
-        
-        -- Efeito visual de confirmação
-        local originalText = "KICK"
-        local button = content:FindFirstChild("KICKContainer"):FindFirstChild("KICKButton")
-        if button then
-            button.Text = "KICKADO!"
-            wait(1)
-            button.Text = originalText
-        end
-        
-        return true
-    else
-        warn("[ADMIN] Selecione um jogador primeiro!")
-        return false
-    end
-end
-
-local function killPlayer(target)
-    if target then
-        -- Simular kill
-        warn("[ADMIN] " .. target.Name .. " foi morto!")
-        
-        local originalText = "KILL"
-        local button = content:FindFirstChild("KILLContainer"):FindFirstChild("KILLButton")
-        if button then
-            button.Text = "MORTO!"
-            wait(1)
-            button.Text = originalText
-        end
-        
-        return true
-    else
-        warn("[ADMIN] Selecione um jogador primeiro!")
-        return false
-    end
-end
-
-local function jailPlayer(target)
-    if target then
-        -- Simular jail
-        warn("[ADMIN] " .. target.Name .. " foi preso!")
-        
-        local originalText = "JAIL"
-        local button = content:FindFirstChild("JAILContainer"):FindFirstChild("JAILButton")
-        if button then
-            button.Text = "PRESO!"
-            wait(1)
-            button.Text = originalText
-        end
-        
-        return true
-    else
-        warn("[ADMIN] Selecione um jogador primeiro!")
-        return false
-    end
-end
-
-local function freezePlayer(target)
-    if target then
-        -- Simular freeze
-        warn("[ADMIN] " .. target.Name .. " foi congelado!")
-        
-        local originalText = "FREEZE"
-        local button = content:FindFirstChild("FREEZEContainer"):FindFirstChild("FREEZEButton")
-        if button then
-            button.Text = "CONGELADO!"
-            wait(1)
-            button.Text = originalText
-        end
-        
-        return true
-    else
-        warn("[ADMIN] Selecione um jogador primeiro!")
-        return false
-    end
-end
-
-local function shutdownPlayer(target)
-    if target then
-        -- Simular shutdown do jogador
-        warn("[ADMIN] " .. target.Name .. " foi desligado!")
-        
-        local originalText = "SHUTDOWN PLAYER"
-        local button = content:FindFirstChild("SHUTDOWN PLAYERContainer"):FindFirstChild("SHUTDOWN PLAYERButton")
-        if button then
-            button.Text = "DESLIGADO!"
-            wait(1)
-            button.Text = originalText
-        end
-        
-        return true
-    else
-        warn("[ADMIN] Selecione um jogador primeiro!")
-        return false
-    end
-end
-
-local function shutdownServer()
-    -- Simular shutdown do servidor
-    warn("[ADMIN] Servidor será reiniciado em 5 segundos!")
+    local itemSelection = Instance.new("Frame")
+    itemSelection.Name = "ItemSelection"
+    itemSelection.Size = UDim2.new(1, -20, 0, 40)
+    itemSelection.Position = UDim2.new(0, 10, 0, 290)
+    itemSelection.BackgroundColor3 = Color3.fromRGB(30, 60, 120)
+    itemSelection.BorderSizePixel = 0
+    itemSelection.ZIndex = 21
+    itemSelection.Parent = trollFrame
     
-    local originalText = "SHUTDOWN SERVER"
-    local button = content:FindFirstChild("SHUTDOWN SERVERContainer"):FindFirstChild("SHUTDOWN SERVERButton")
-    if button then
-        button.Text = "REINICIANDO..."
-        
-        -- Efeito de contagem regressiva
-        for i = 5, 1, -1 do
-            button.Text = "REINICIANDO EM " .. i
-            wait(1)
-        end
-        
-        button.Text = originalText
-    end
+    local itemCorner = Instance.new("UICorner")
+    itemCorner.CornerRadius = UDim.new(0, 8)
+    itemCorner.Parent = itemSelection
     
-    return true
-end
-
-local function emotePlayer(target, emoteName)
-    if target then
-        -- Simular emote
-        local emote = emoteName or "dance"
-        warn("[ADMIN] " .. target.Name .. " está fazendo o emote: " .. emote)
-        
-        local originalText = "EMOTE"
-        local button = content:FindFirstChild("EMOTEContainer"):FindFirstChild("EMOTEButton")
-        if button then
-            button.Text = "EMOTANDO!"
-            wait(1)
-            button.Text = originalText
-        end
-        
-        return true
-    else
-        warn("[ADMIN] Selecione um jogador primeiro!")
-        return false
-    end
-end
-
--- Processador de comandos por texto
-local function processCommand(commandText)
-    local parts = {}
-    for part in commandText:gmatch("%S+") do
-        table.insert(parts, part)
-    end
+    local items = {"Sofá Ball", "Flings Ball", "Flings Kick Ball", "Flings Ball V2"}
+    local selectedItem = items[1]
     
-    if #parts == 0 then return end
+    local itemText = Instance.new("TextLabel")
+    itemText.Name = "ItemText"
+    itemText.Size = UDim2.new(0.7, 0, 1, 0)
+    itemText.Position = UDim2.new(0, 0, 0, 0)
+    itemText.BackgroundTransparency = 1
+    itemText.Text = selectedItem
+    itemText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    itemText.TextSize = 16
+    itemText.Font = Enum.Font.Gotham
+    itemText.ZIndex = 22
+    itemText.Parent = itemSelection
     
-    local command = parts[1]:lower():sub(2)  -- Remove o "/"
-    local targetName = parts[2] or ""
-    local extraParam = parts[3] or ""
+    local arrowButton = Instance.new("TextButton")
+    arrowButton.Name = "ArrowButton"
+    arrowButton.Size = UDim2.new(0, 40, 1, 0)
+    arrowButton.Position = UDim2.new(1, -40, 0, 0)
+    arrowButton.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
+    arrowButton.BorderSizePixel = 0
+    arrowButton.Text = "▼"
+    arrowButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    arrowButton.TextSize = 16
+    arrowButton.Font = Enum.Font.Gotham
+    arrowButton.ZIndex = 22
+    arrowButton.Parent = itemSelection
     
-    -- Encontrar o jogador alvo
-    local target = nil
-    if targetName ~= "" then
-        for _, plr in ipairs(Players:GetPlayers()) do
-            if plr.Name:lower():find(targetName:lower()) or plr.DisplayName:lower():find(targetName:lower()) then
-                target = plr
-                break
-            end
-        end
-    end
+    local arrowCorner = Instance.new("UICorner")
+    arrowCorner.CornerRadius = UDim.new(0, 8)
+    arrowCorner.Parent = arrowButton
     
-    -- Executar comando
-    if command == "kick" then
-        kickPlayer(target or selectedPlayer)
-    elseif command == "kill" then
-        killPlayer(target or selectedPlayer)
-    elseif command == "jail" then
-        jailPlayer(target or selectedPlayer)
-    elseif command == "freeze" then
-        freezePlayer(target or selectedPlayer)
-    elseif command == "shutdownplayer" then
-        shutdownPlayer(target or selectedPlayer)
-    elseif command == "shutdownserver" then
-        shutdownServer()
-    elseif command == "emote" then
-        emotePlayer(target or selectedPlayer, extraParam)
-    else
-        warn("[ADMIN] Comando não reconhecido: " .. command)
-    end
-end
-
--- Criar seletor de jogador
-local playerSelector = createPlayerSelector()
-
--- Criar console de comandos
-local commandConsole = createCommandConsole()
-
--- Adicionar botões de comando
-createRainbowButton("KICK", function() kickPlayer(selectedPlayer) end, "Remove o jogador do jogo")
-createRainbowButton("KILL", function() killPlayer(selectedPlayer) end, "Mata o jogador")
-createRainbowButton("JAIL", function() jailPlayer(selectedPlayer) end, "Prende o jogador")
-createRainbowButton("FREEZE", function() freezePlayer(selectedPlayer) end, "Congela o jogador")
-createRainbowButton("SHUTDOWN PLAYER", function() shutdownPlayer(selectedPlayer) end, "Desliga o jogador")
-createRainbowButton("SHUTDOWN SERVER", shutdownServer, "Reinicia o servidor")
-createRainbowButton("EMOTE", function() emotePlayer(selectedPlayer) end, "Força um emote no jogador")
-
--- Variável de estado
-isHubOpen = false
-
--- Função para abrir o hub
-local function openHub()
-    isHubOpen = true
-    hubFrame.Visible = true
+    local itemDropdown = Instance.new("Frame")
+    itemDropdown.Name = "ItemDropdown"
+    itemDropdown.Size = UDim2.new(1, 0, 0, 0)
+    itemDropdown.Position = UDim2.new(0, 0, 1, 5)
+    itemDropdown.BackgroundColor3 = Color3.fromRGB(30, 60, 120)
+    itemDropdown.BorderSizePixel = 0
+    itemDropdown.Visible = false
+    itemDropdown.ZIndex = 23
+    itemDropdown.Parent = itemSelection
     
-    local openTween = TweenService:Create(hubFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Size = UDim2.new(0, 350, 0, 450)
-    })
-    openTween:Play()
-end
-
--- Função para fechar o hub
-local function closeHub()
-    isHubOpen = false
+    local dropdownLayout = Instance.new("UIListLayout")
+    dropdownLayout.Parent = itemDropdown
     
-    local closeTween = TweenService:Create(hubFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-        Size = UDim2.new(0, 0, 0, 450)
-    })
-    closeTween:Play()
-    
-    closeTween.Completed:Connect(function()
-        if not isHubOpen then
-            hubFrame.Visible = false
-        end
-    end)
-end
-
--- Conectar eventos de clique
-toggleButton.MouseButton1Click:Connect(function()
-    if isHubOpen then
-        closeHub()
-    else
-        openHub()
-    end
-end)
-
-closeButton.MouseButton1Click:Connect(function()
-    closeHub()
-end)
-
--- Adicionar elementos à ScreenGui
-toggleButton.Parent = screenGui
-hubFrame.Parent = screenGui
-
--- Função para toggle com tecla (opcional)
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    
-    if input.KeyCode == Enum.KeyCode.H then
-        if isHubOpen then
-            closeHub()
+    arrowButton.MouseButton1Click:Connect(function()
+        itemDropdown.Visible = not itemDropdown.Visible
+        if itemDropdown.Visible then
+            itemDropdown.Size = UDim2.new(1, 0, 0, 160)
         else
-            openHub()
+            itemDropdown.Size = UDim2.new(1, 0, 0, 0)
         end
-    end
-end)
-
--- Sistema de comandos por chat
-local function onChatMessage(message, recipient)
-    if message:sub(1, 1) == "/" then
-        processCommand(message)
-        return false  -- Impede que a mensagem seja enviada ao chat público
-    end
-    return true
-end
-
--- Conectar ao evento de chat
-if player:FindFirstChild("PlayerScripts") then
-    local playerScripts = player:WaitForChild("
+    end)
+    
+    for _, item in ipairs(items) do
+        local optionButton = Instance.new("TextButton")
+        optio
